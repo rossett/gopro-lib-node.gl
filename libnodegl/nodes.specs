@@ -104,7 +104,7 @@
         - [data, data]
         - [filename, string]
         - [stride, int]
-        - [usage, select]
+        - [usage, int]
 
 - BufferByte: _Buffer
 
@@ -198,7 +198,7 @@
 
 - ComputeProgram:
     constructors:
-        - [compute, string]
+        - [compute, data]
 
 - Geometry:
     constructors:
@@ -265,8 +265,8 @@
 
 - Program:
     optional:
-        - [vertex, string]
-        - [fragment, string]
+        - [vertex, data]
+        - [fragment, data]
 
 - Quad:
     optional:
@@ -326,8 +326,15 @@
         - [mag_filter, select]
         - [wrap_s, select]
         - [wrap_t, select]
+<<<<<<< HEAD
         - [access, select]
         - [data_src, Node]
+||||||| parent of 3ebb7c38... WIP: vulkan
+        - [data_src, Node]
+        - [access, select]
+=======
+        - [data_src, Node]
+>>>>>>> 3ebb7c38... WIP: vulkan
         - [direct_rendering, bool]
 
 - Texture3D:
@@ -341,8 +348,14 @@
         - [wrap_s, select]
         - [wrap_t, select]
         - [wrap_r, select]
+<<<<<<< HEAD
         - [access, select]
         - [data_src, Node]
+||||||| parent of 3ebb7c38... WIP: vulkan
+        - [data_src, Node]
+        - [access, select]
+=======
+>>>>>>> 3ebb7c38... WIP: vulkan
 
 - TimeRangeFilter:
     constructors:

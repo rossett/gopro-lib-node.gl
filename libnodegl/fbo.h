@@ -37,13 +37,49 @@ struct fbo {
     struct glcontext *gl;
     int width;
     int height;
+<<<<<<< HEAD
 
+||||||| parent of 3ebb7c38... WIP: vulkan
+    int samples;
+=======
+    int samples;
+#ifdef VULKAN_BACKEND
+    // TODO
+#else
+>>>>>>> 3ebb7c38... WIP: vulkan
     GLuint id;
     GLuint prev_id;
+<<<<<<< HEAD
+||||||| parent of 3ebb7c38... WIP: vulkan
+    struct darray attachments;
+=======
+#endif
+    struct darray attachments;
+>>>>>>> 3ebb7c38... WIP: vulkan
     struct darray depth_indices;
 };
 
+<<<<<<< HEAD
 int ngli_fbo_init(struct fbo *fbo, struct glcontext *gl, const struct fbo_params *params);
+||||||| parent of 3ebb7c38... WIP: vulkan
+int ngli_fbo_init(struct fbo *fbo, struct glcontext *gl, int width, int height, int samples);
+int ngli_fbo_resize(struct fbo *fbo, int width, int height);
+int ngli_fbo_create_renderbuffer(struct fbo *fbo, int format);
+int ngli_fbo_attach_renderbuffer(struct fbo *fbo, int format, GLuint renderbuffer);
+int ngli_fbo_attach_texture(struct fbo *fbo, int format, GLuint texture);
+int ngli_fbo_allocate(struct fbo *fbo);
+=======
+int ngli_fbo_init(struct fbo *fbo, struct glcontext *gl, int width, int height, int samples);
+int ngli_fbo_resize(struct fbo *fbo, int width, int height);
+int ngli_fbo_create_renderbuffer(struct fbo *fbo, int format);
+#ifdef VULKAN_BACKEND
+// TODO
+#else
+int ngli_fbo_attach_renderbuffer(struct fbo *fbo, int format, GLuint renderbuffer);
+int ngli_fbo_attach_texture(struct fbo *fbo, int format, GLuint texture);
+#endif
+int ngli_fbo_allocate(struct fbo *fbo);
+>>>>>>> 3ebb7c38... WIP: vulkan
 int ngli_fbo_bind(struct fbo *fbo);
 int ngli_fbo_unbind(struct fbo *fbo);
 void ngli_fbo_invalidate_depth_buffers(struct fbo *fbo);
