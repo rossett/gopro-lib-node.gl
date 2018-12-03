@@ -236,7 +236,6 @@ static int hud_init(struct ngl_node *node)
 {
     struct ngl_ctx *ctx = node->ctx;
     struct glcontext *gl = ctx->glcontext;
-
     struct hud *s = node->priv_data;
 
     if (gl->features & NGLI_FEATURE_TIMER_QUERY) {
@@ -462,10 +461,9 @@ static int hud_update(struct ngl_node *node, double t)
 
 static void hud_draw(struct ngl_node *node)
 {
-    struct hud *s = node->priv_data;
-
     struct ngl_ctx *ctx = node->ctx;
     struct glcontext *gl = ctx->glcontext;
+    struct hud *s = node->priv_data;
 
     int timer_active = ctx->timer_active;
     if (!timer_active) {
