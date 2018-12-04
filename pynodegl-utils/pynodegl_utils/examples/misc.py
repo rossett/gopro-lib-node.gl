@@ -634,3 +634,32 @@ def mountain(cfg, ndim=3, nb_layers=7,
                               blend_src_factor_a='zero',
                               blend_dst_factor_a='one')
     return blend
+
+
+@scene()
+def async(cfg):
+    '''Async test scene'''
+    group = ngl.Group()
+
+    m0 = cfg.medias[0]
+    cfg.duration = m0.duration
+    cfg.aspect_ratio = (m0.width, m0.height)
+
+    m = ngl.Media(cfg.medias[0].filename)
+    t = ngl.Texture2D(data_src=m)
+
+    q = ngl.Quad((-1, -1, 0), (2, 0, 0), (0, 2, 0))
+    r = ngl.Render(q)
+    r.update_textures(tex0=t)
+    proxy_size = 128
+    proxy = ngl.Texture2D(width=proxy_size, height=proxy_size)
+    rtt = ngl.RenderToTexture(r, proxy)
+
+    nasync = ngl.Async(rtt)
+
+    q = ngl.Quad((-1, -1, 0), (2, 0, 0), (0, 2, 0))
+    r = ngl.Render(q)
+    #r.update_textures(tex0=proxy)
+    group.add_children(nasync, r)
+
+    return group

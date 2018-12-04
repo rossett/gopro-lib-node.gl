@@ -157,6 +157,16 @@ Parameter | Ctor. | Live-chg. | Type | Description | Default
 **Source**: [node_animkeyframe.c](/libnodegl/node_animkeyframe.c)
 
 
+## Async
+
+Parameter | Ctor. | Live-chg. | Type | Description | Default
+--------- | :---: | :-------: | ---- | ----------- | :-----:
+`child` | ✓ |  | [`Node`](#parameter-types) | scene to be renderer asynchronously | 
+
+
+**Source**: [node_async.c](/libnodegl/node_async.c)
+
+
 ## Buffer*
 
 Parameter | Ctor. | Live-chg. | Type | Description | Default

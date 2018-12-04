@@ -139,6 +139,21 @@ struct graphicconfig {
     struct glstate states[2];
 };
 
+struct async {
+    struct ngl_node *child;
+    struct ngl_ctx *ngl_ctx;
+    struct ngl_config ngl_config;
+
+    pthread_t worker_tid;
+    pthread_mutex_t lock;
+    pthread_cond_t cond_ctl;
+    pthread_cond_t cond_wkr;
+    cmd_func_type cmd_func;
+    void *cmd_arg;
+    int cmd_ret;
+
+};
+
 struct camera {
     struct ngl_node *child;
     float eye[3];

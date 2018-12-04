@@ -73,6 +73,7 @@ LIB_OBJS = api.o                    \
            node_animatedbuffer.o    \
            node_animation.o         \
            node_animkeyframe.o      \
+           node_async.o             \
            node_buffer.o            \
            node_camera.o            \
            node_circle.o            \

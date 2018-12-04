@@ -98,6 +98,10 @@
         - [easing_start_offset, double]
         - [easing_end_offset, double]
 
+- Async:
+    constructors:
+        - [child, Node]
+
 - _Buffer:
     optional:
         - [count, int]
