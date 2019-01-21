@@ -70,6 +70,7 @@ struct ngl_ctx {
     const struct backend *backend;
     int configured;
     pthread_t worker_tid;
+    int thread;
 
     /* Worker-only fields */
     struct glcontext *glcontext;
@@ -94,6 +95,8 @@ struct ngl_ctx {
     void *cmd_arg;
     int cmd_ret;
 };
+
+struct ngl_ctx *ngli_create(int thread);
 
 struct ngl_node {
     const struct node_class *class;
