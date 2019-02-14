@@ -5,7 +5,6 @@ import random
 import pynodegl as ngl
 from pynodegl_utils.misc import scene
 
-
 @scene(xsplit={'type': 'range', 'range': [0, 1], 'unit_base': 100},
        trilinear={'type': 'bool'})
 def lut3d(cfg, xsplit=.3, trilinear=True):
@@ -634,3 +633,95 @@ def mountain(cfg, ndim=3, nb_layers=7,
                               blend_src_factor_a='zero',
                               blend_dst_factor_a='one')
     return blend
+
+
+@scene(slitscan_type={'type': 'range', 'range': [0, 1]},
+        texture_count={'type': 'range', 'range': [1, 64]})
+def slitscan(cfg, slitscan_type=1, texture_count=32):
+    '''Accumulates texture to create a slitscan effect'''
+    media_file = cfg.medias[0]
+    # cfg.duration = media0.duration
+    cfg.duration = 1.5
+    cfg.aspect_ratio = (media_file.width, media_file.height)
+
+    group = ngl.Group()
+    media = ngl.Media(media_file.filename)
+    media_texture = ngl.Texture2D(data_src=media)
+    media_quad = ngl.Quad((-1, -1, 0), (2, 0, 0), (0, 2, 0))
+    media_render = ngl.Render(media_quad)
+    media_render.update_textures(tex0=media_texture)
+
+    output_texture = ngl.Texture2D(width=media_file.width, height=media_file.height)
+
+    # simple slitscan
+    if slitscan_type == 0:
+        time_step = cfg.duration / media_file.height
+        for i in range(int(media_file.height)):
+
+            time_ranges = [
+                ngl.TimeRangeModeNoop(0),
+                ngl.TimeRangeModeCont(i*time_step),
+                ngl.TimeRangeModeNoop((i+1)*time_step),
+            ]
+
+            rtt = ngl.RenderToTexture(child=media_render, color_texture=output_texture, scissor=(0, i, media_file.width, media_file.height-i))
+            rtt.set_features("")
+            time_range_filter = ngl.TimeRangeFilter(rtt, ranges=time_ranges)
+            group.add_children(time_range_filter)
+
+    # slitscan with time displacement
+    else:
+        renders = []
+        textures = []
+        for i in range(texture_count):
+            texture = ngl.Texture2D(width=media_file.width, height=media_file.height)
+            textures.append(texture)
+
+            render_quad = ngl.Quad((-1, -1, 0), (2, 0, 0), (0, 2, 0))
+            render = ngl.Render(render_quad)
+            render.update_textures(tex0=texture)
+            renders.append(render)
+
+        frame_count = int(cfg.duration * cfg.framerate[0] / cfg.framerate[1])
+        time_step = cfg.duration / frame_count
+        for i in range(frame_count):
+
+            time_ranges = [
+                ngl.TimeRangeModeNoop(0),
+                ngl.TimeRangeModeCont(i*time_step),
+                ngl.TimeRangeModeNoop((i+1)*time_step),
+            ]
+
+            # for j in range(1, texture_count):
+            #     rtt = ngl.RenderToTexture(child=renders[j], color_texture=textures[j-1], scissor=(0, 0, media0.width, media0.height))
+            #     rtt.set_features("")
+            #     time_range_filter = ngl.TimeRangeFilter(rtt, ranges=time_ranges)
+            #     # group.add_children(time_range_filter)
+            # render_index = (i-1) % texture_count
+            texture_index = i % texture_count
+            print 'from %f to %f: %d' % (i*time_step, (i+1)*time_step, texture_index)
+            rtt = ngl.RenderToTexture(child=media_render, color_texture=textures[texture_index])
+            rtt.set_features("")
+            time_range_filter = ngl.TimeRangeFilter(rtt, ranges=time_ranges)
+            group.add_children(time_range_filter)
+
+            # for j in range(texture_count):
+            #     rtt = ngl.RenderToTexture(child=renders[j], color_texture=final_texture, scissor=(0, j*pixel_height, media0.width, pixel_height))
+            #     rtt.set_features("")
+            #     # time_range_filter = ngl.TimeRangeFilter(rtt, ranges=time_ranges)
+            #     group.add_children(rtt)
+
+        pixel_height = media_file.height / texture_count
+        for i in range(texture_count):
+            rtt = ngl.RenderToTexture(child=renders[i], color_texture=output_texture, scissor=(0, i*pixel_height, media_file.width, pixel_height))
+            rtt.set_features("")
+            # time_range_filter = ngl.TimeRangeFilter(rtt, ranges=time_ranges)
+            group.add_children(rtt)
+
+    program = ngl.Program()
+    quad = ngl.Quad((-1, -1, 0), (2, 0, 0), (0, 2, 0))
+    render = ngl.Render(quad)
+    render.update_textures(tex0=output_texture)
+    group.add_children(render)
+
+    return group

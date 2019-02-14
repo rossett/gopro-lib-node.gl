@@ -31,14 +31,19 @@
 #include "utils.h"
 
 #define DEFAULT_CLEAR_COLOR {-1.0f, -1.0f, -1.0f, -1.0f}
+#define DEFAULT_SCISSOR     {-1.0f, -1.0f, -1.0f, -1.0f}
 #define FEATURE_DEPTH       (1 << 0)
 #define FEATURE_STENCIL     (1 << 1)
+#define FEATURE_CLEAR_COLOR (1 << 2)
+#define FEATURE_CLEAR       (1 << 3)
+#define FEATURE_SCISSOR     (1 << 4)
 
 static const struct param_choices feature_choices = {
     .name = "framebuffer_features",
     .consts = {
         {"depth",   FEATURE_DEPTH,   .desc=NGLI_DOCSTRING("depth")},
         {"stencil", FEATURE_STENCIL, .desc=NGLI_DOCSTRING("stencil")},
+        {"clear",   FEATURE_CLEAR,   .desc=NGLI_DOCSTRING("clear")},
         {NULL}
     }
 };
@@ -56,11 +61,13 @@ static const struct node_param rtt_params[] = {
                       .flags=PARAM_FLAG_DOT_DISPLAY_FIELDNAME,
                       .node_types=(const int[]){NGL_NODE_TEXTURE2D, -1},
                       .desc=NGLI_DOCSTRING("destination depth (and potentially combined stencil) texture")},
+    {"scissor",       PARAM_TYPE_VEC4, OFFSET(scissor), {.vec=DEFAULT_SCISSOR},
+                      .desc=NGLI_DOCSTRING("scissor used used to write to `color_texture` and optionally to `depth_texture`")},
     {"samples",       PARAM_TYPE_INT, OFFSET(samples),
                       .desc=NGLI_DOCSTRING("number of samples used for multisampling anti-aliasing")},
     {"clear_color",   PARAM_TYPE_VEC4, OFFSET(clear_color), {.vec=DEFAULT_CLEAR_COLOR},
                       .desc=NGLI_DOCSTRING("color used to clear the `color_texture`")},
-    {"features",      PARAM_TYPE_FLAGS, OFFSET(features),
+    {"features",      PARAM_TYPE_FLAGS, OFFSET(features), {.i64=FEATURE_CLEAR},
                       .choices=&feature_choices,
                       .desc=NGLI_DOCSTRING("framebuffer feature mask")},
     {"vflip",         PARAM_TYPE_BOOL, OFFSET(vflip), {.i64=1},
@@ -83,8 +90,13 @@ static int rtt_init(struct ngl_node *node)
 {
     struct rtt_priv *s = node->priv_data;
 
-    float clear_color[4] = DEFAULT_CLEAR_COLOR;
-    s->use_clear_color = memcmp(s->clear_color, clear_color, sizeof(s->clear_color));
+    float default_clear_color[4] = DEFAULT_CLEAR_COLOR;
+    if (memcmp(s->clear_color, default_clear_color, sizeof(s->clear_color)) != 0)
+        s->features |= FEATURE_CLEAR_COLOR;
+
+    float default_scissor[4] = DEFAULT_SCISSOR;
+    if (memcmp(s->scissor, default_scissor, sizeof(s->scissor)) != 0)
+        s->features |= FEATURE_SCISSOR;
 
     return 0;
 }
@@ -236,16 +248,24 @@ static void rtt_draw(struct ngl_node *node)
     ngli_glGetIntegerv(gl, GL_VIEWPORT, viewport);
     ngli_glViewport(gl, 0, 0, s->width, s->height);
 
-    if (s->use_clear_color) {
-        float *rgba = s->clear_color;
-        ngli_glClearColor(gl, rgba[0], rgba[1], rgba[2], rgba[3]);
+    if ((s->features & FEATURE_CLEAR)) {
+        if ((s->features & FEATURE_CLEAR_COLOR)) {
+            float *rgba = s->clear_color;
+            ngli_glClearColor(gl, rgba[0], rgba[1], rgba[2], rgba[3]);
+        }
+
+        ngli_glClear(gl, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     }
 
-    ngli_glClear(gl, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    if ((s->features & FEATURE_SCISSOR)) {
+        ngli_glScissor(gl, s->scissor[0], s->scissor[1], s->scissor[2], s->scissor[3]);
+        ngli_glEnable(gl, GL_SCISSOR_TEST);
+    }
 
+    LOG(INFO, "%p", (void*)node);
     ngli_node_draw(s->child);
 
-    if (s->use_clear_color) {
+    if ((s->features & FEATURE_CLEAR_COLOR)) {
         struct ngl_config *config = &ctx->config;
         float *rgba = config->clear_color;
         ngli_glClearColor(gl, rgba[0], rgba[1], rgba[2], rgba[3]);
@@ -257,6 +277,9 @@ static void rtt_draw(struct ngl_node *node)
     ngli_fbo_invalidate_depth_buffers(fbo);
     ngli_fbo_unbind(fbo);
 
+    if ((s->features & FEATURE_SCISSOR)) {
+        ngli_glDisable(gl, GL_SCISSOR_TEST);
+    }
     ngli_glViewport(gl, viewport[0], viewport[1], viewport[2], viewport[3]);
 
     struct ngl_node *texture_node = s->color_texture;

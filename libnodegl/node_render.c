@@ -526,6 +526,8 @@ static void render_draw(struct ngl_node *node)
     }
 
     s->draw(gl, s);
+    LOG(INFO, "%p", (void*)node);
+
 
     if (!(gl->features & NGLI_FEATURE_VERTEX_ARRAY_OBJECT)) {
         disable_vertex_attribs(node);

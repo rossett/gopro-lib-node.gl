@@ -263,12 +263,12 @@ struct rtt_priv {
     struct ngl_node *child;
     struct ngl_node *color_texture;
     struct ngl_node *depth_texture;
+    float scissor[4];
     int samples;
     float clear_color[4];
     int features;
     int vflip;
 
-    int use_clear_color;
     int width;
     int height;
 
