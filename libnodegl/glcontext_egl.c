@@ -410,6 +410,12 @@ static uintptr_t egl_get_handle(struct glcontext *ctx)
     return (uintptr_t)egl->handle;
 }
 
+static struct fbo *egl_get_framebuffer(struct glcontext *ctx)
+{
+    struct egl_priv *egl = ctx->priv_data;
+    return &egl->fbo;
+}
+
 const struct glcontext_class ngli_glcontext_egl_class = {
     .init = egl_init,
     .init_framebuffer = egl_init_framebuffer,
@@ -421,5 +427,6 @@ const struct glcontext_class ngli_glcontext_egl_class = {
     .get_proc_address = egl_get_proc_address,
     .get_handle = egl_get_handle,
     .get_display = get_display,
+    .get_framebuffer = egl_get_framebuffer,
     .priv_size = sizeof(struct egl_priv),
 };

@@ -314,6 +314,12 @@ static void *wgl_get_proc_address(struct glcontext *ctx, const char *name)
     return addr;
 }
 
+static struct fbo *wgl_get_framebuffer(struct glcontext *ctx)
+{
+    struct wgl_priv *wgl = ctx->priv_data;
+    return &wgl->fbo;
+}
+
 static uintptr_t wgl_get_handle(struct glcontext *ctx)
 {
     struct wgl_priv *wgl = ctx->priv_data;
@@ -329,5 +335,6 @@ const struct glcontext_class ngli_glcontext_wgl_class = {
     .set_swap_interval = wgl_set_swap_interval,
     .get_proc_address = wgl_get_proc_address,
     .get_handle = wgl_get_handle,
+    .get_framebuffer = wgl_get_framebuffer,
     .priv_size = sizeof(struct wgl_priv),
 };

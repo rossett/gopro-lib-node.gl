@@ -382,6 +382,12 @@ static uintptr_t eagl_get_handle(struct glcontext *ctx)
     return (uintptr_t)eagl->handle;
 }
 
+static struct fbo *eagl_get_framebuffer(struct glcontext *ctx)
+{
+    struct eagl_priv *eagl = ctx->priv_data;
+    return &eagl->fbo;
+}
+
 const struct glcontext_class ngli_glcontext_eagl_class = {
     .init = eagl_init,
     .init_framebuffer = eagl_init_framebuffer,
@@ -392,5 +398,6 @@ const struct glcontext_class ngli_glcontext_eagl_class = {
     .get_texture_cache = eagl_get_texture_cache,
     .get_proc_address = eagl_get_proc_address,
     .get_handle = eagl_get_handle,
+    .get_framebuffer = eagl_get_framebuffer,
     .priv_size = sizeof(struct eagl_priv),
 };

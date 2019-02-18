@@ -262,6 +262,12 @@ static uintptr_t nsgl_get_handle(struct glcontext *ctx)
     return (uintptr_t)nsgl->handle;
 }
 
+static struct fbo *nsgl_get_framebuffer(struct glcontext *ctx)
+{
+    struct nsgl_priv *nsgl = ctx->priv_data;
+    return &nsgl->fbo;
+}
+
 static void nsgl_uninit(struct glcontext *ctx)
 {
     struct nsgl_priv *nsgl = ctx->priv_data;
@@ -293,5 +299,6 @@ const struct glcontext_class ngli_glcontext_nsgl_class = {
     .set_swap_interval = nsgl_set_swap_interval,
     .get_proc_address = nsgl_get_proc_address,
     .get_handle = nsgl_get_handle,
+    .get_framebuffer = nsgl_get_framebuffer,
     .priv_size = sizeof(struct nsgl_priv),
 };

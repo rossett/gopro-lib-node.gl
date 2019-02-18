@@ -479,6 +479,16 @@ uintptr_t ngli_glcontext_get_handle(struct glcontext *glcontext)
     return handle;
 }
 
+struct fbo *ngli_glcontext_get_framebuffer(struct glcontext *glcontext)
+{
+    struct fbo *fbo = NULL;
+
+    if (glcontext->class->get_framebuffer)
+        fbo = glcontext->class->get_framebuffer(glcontext);
+
+    return fbo;
+}
+
 int ngli_glcontext_check_extension(const char *extension, const char *extensions)
 {
     if (!extension || !extensions)
