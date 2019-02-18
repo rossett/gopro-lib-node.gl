@@ -25,10 +25,85 @@
 #include "nodes.h"
 #include "backend.h"
 #include "glcontext.h"
+#include "memory.h"
 
 #if defined(HAVE_VAAPI_X11)
 #include "vaapi.h"
 #endif
+
+static int capture_init(struct ngl_ctx *s)
+{
+    struct glcontext *gl = s->glcontext;
+    struct ngl_config *config = &s->config;
+    if (!config->capture_buffer)
+        return 0;
+
+    if (gl->features & NGLI_FEATURE_FRAMEBUFFER_OBJECT) {
+        struct texture_params attachment_params = NGLI_TEXTURE_PARAM_DEFAULTS;
+        attachment_params.format = NGLI_FORMAT_R8G8B8A8_UNORM;
+        attachment_params.width = config->width;
+        attachment_params.height = config->height;
+        attachment_params.usage = NGLI_TEXTURE_USAGE_ATTACHMENT_ONLY;
+        int ret = ngli_texture_init(&s->capture_fbo_color, gl, &attachment_params);
+        if (ret < 0)
+            return ret;
+
+        const struct texture *attachments[] = {&s->capture_fbo_color};
+        const int nb_attachments = NGLI_ARRAY_NB(attachments);
+
+        struct fbo_params fbo_params = {
+            .width = config->width,
+            .height = config->height,
+            .nb_attachments = nb_attachments,
+            .attachments = attachments,
+        };
+        ret = ngli_fbo_init(&s->capture_fbo, gl, &fbo_params);
+        if (ret < 0)
+            return ret;
+    } else {
+        s->capture_buffer = ngli_calloc(4 /* RGBA */, config->width * config->height);
+        if (!s->capture_buffer)
+            return -1;
+    }
+
+    return 0;
+}
+
+static int capture(struct ngl_ctx *s)
+{
+    struct glcontext *gl = s->glcontext;
+    struct ngl_config *config = &s->config;
+    if (!config->capture_buffer)
+        return 0;
+
+    struct fbo *main_fbo = ngli_glcontext_get_framebuffer(gl);
+    if (!main_fbo)
+        return -1;
+
+    if (gl->features & NGLI_FEATURE_FRAMEBUFFER_OBJECT) {
+        struct fbo *capture_fbo = &s->capture_fbo;
+        ngli_fbo_blit(main_fbo, capture_fbo, 1);
+        ngli_fbo_bind(capture_fbo);
+        ngli_fbo_read_pixels(capture_fbo, config->capture_buffer);
+        ngli_fbo_unbind(capture_fbo);
+    } else {
+        ngli_fbo_read_pixels(main_fbo, s->capture_buffer);
+        const int linesize = config->width * 4;
+        for (int i = 0; i < config->height; i++) {
+            const int line = config->height - i - 1;
+            const uint8_t *src = s->capture_buffer + line * linesize;
+            uint8_t *dst = config->capture_buffer + i * linesize;
+            memcpy(dst, src, linesize);
+        }
+    }
+    return 0;
+}
+
+static void capture_reset(struct ngl_ctx *s)
+{
+    ngli_fbo_reset(&s->capture_fbo);
+    ngli_texture_reset(&s->capture_fbo_color);
+}
 
 static int gl_reconfigure(struct ngl_ctx *s, const struct ngl_config *config)
 {
@@ -57,6 +132,11 @@ static int gl_configure(struct ngl_ctx *s, const struct ngl_config *config)
 {
     memcpy(&s->config, config, sizeof(s->config));
 
+    if (!config->offscreen && config->capture_buffer) {
+        LOG(ERROR, "capture_buffer is only supported with offscreen rendering");
+        return -1;
+    }
+
     s->glcontext = ngli_glcontext_new(&s->config);
     if (!s->glcontext)
         return -1;
@@ -73,11 +153,16 @@ static int gl_configure(struct ngl_ctx *s, const struct ngl_config *config)
     const float *rgba = config->clear_color;
     ngli_glClearColor(s->glcontext, rgba[0], rgba[1], rgba[2], rgba[3]);
 
+    int ret;
 #if defined(HAVE_VAAPI_X11)
-    int ret = ngli_vaapi_init(s);
+    ret = ngli_vaapi_init(s);
     if (ret < 0)
         LOG(WARNING, "could not initialize vaapi");
 #endif
+
+    ret = capture_init(s);
+    if (ret < 0)
+        return ret;
 
     return 0;
 }
@@ -94,7 +179,10 @@ static int gl_post_draw(struct ngl_ctx *s, double t)
 {
     struct glcontext *gl = s->glcontext;
 
-    int ret = 0;
+    int ret = capture(s);
+    if (ret < 0)
+        LOG(ERROR, "could not capture framebuffer");
+
     if (ngli_glcontext_check_gl_error(gl, __FUNCTION__))
         ret = -1;
 
@@ -108,6 +196,7 @@ static int gl_post_draw(struct ngl_ctx *s, double t)
 
 static void gl_destroy(struct ngl_ctx *s)
 {
+    capture_reset(s);
 #if defined(HAVE_VAAPI_X11)
     ngli_vaapi_reset(s);
 #endif

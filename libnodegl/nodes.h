@@ -85,6 +85,9 @@ struct ngl_ctx {
     VADisplay va_display;
     int va_version;
 #endif
+    struct fbo capture_fbo;
+    struct texture capture_fbo_color;
+    uint8_t *capture_buffer;
 
     /* Shared fields */
     pthread_mutex_t lock;
