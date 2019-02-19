@@ -26,9 +26,12 @@
 #include <GL/glcorearb.h>
 #include <GL/wglext.h>
 
+#include "fbo.h"
+#include "format.h"
 #include "glcontext.h"
 #include "nodegl.h"
 #include "log.h"
+#include "texture.h"
 
 struct wgl_priv {
     HWND window;
@@ -43,6 +46,9 @@ struct wgl_priv {
     PFNWGLDESTROYPBUFFERARBPROC DestroyPbufferARB;
     PFNWGLGETPBUFFERDCARBPROC GetPbufferDCARB;
     PFNWGLSWAPINTERVALEXTPROC SwapIntervalEXT;
+    struct fbo fbo;
+    struct texture fbo_color;
+    struct texture fbo_depth;
 };
 
 static int wgl_init(struct glcontext *ctx, uintptr_t display, uintptr_t window, uintptr_t other)
@@ -194,9 +200,60 @@ static int wgl_init(struct glcontext *ctx, uintptr_t display, uintptr_t window, 
     return 0;
 }
 
+static int wgl_init_framebuffer(struct glcontext *ctx)
+{
+    struct wgl_priv *wgl = ctx->priv_data;
+
+    if (!ctx->offscreen)
+        return 0;
+
+    if (!(ctx->features & NGLI_FEATURE_FRAMEBUFFER_OBJECT) && ctx->samples > 0) {
+        LOG(WARNING, "context does not support the framebuffer object feature, multisample anti-aliasing will be disabled");
+        ctx->samples = 0;
+    }
+
+    struct texture_params attachment_params = NGLI_TEXTURE_PARAM_DEFAULTS;
+    attachment_params.format = NGLI_FORMAT_R8G8B8A8_UNORM;
+    attachment_params.width = ctx->width;
+    attachment_params.height = ctx->height;
+    attachment_params.samples = ctx->samples;
+    attachment_params.usage = NGLI_TEXTURE_USAGE_ATTACHMENT_ONLY;
+    int ret = ngli_texture_init(&wgl->fbo_color, ctx, &attachment_params);
+    if (ret < 0)
+        return ret;
+
+    attachment_params.format = NGLI_FORMAT_D24_UNORM_S8_UINT;
+    ret = ngli_texture_init(&wgl->fbo_depth, ctx, &attachment_params);
+    if (ret < 0)
+        return ret;
+
+    const struct texture *attachments[] = {&wgl->fbo_color, &wgl->fbo_depth};
+    struct fbo_params fbo_params = {
+        .width = ctx->width,
+        .height = ctx->height,
+        .nb_attachments = NGLI_ARRAY_NB(attachments),
+        .attachments = attachments,
+    };
+    ret = ngli_fbo_init(&wgl->fbo, ctx, &fbo_params);
+    if (ret < 0)
+        return ret;
+
+    ret = ngli_fbo_bind(&wgl->fbo);
+    if (ret < 0)
+        return ret;
+
+    ngli_glViewport(ctx, 0, 0, ctx->width, ctx->height);
+
+    return 0;
+}
+
 static void wgl_uninit(struct glcontext *ctx)
 {
     struct wgl_priv *wgl = ctx->priv_data;
+
+    ngli_fbo_reset(&wgl->fbo);
+    ngli_texture_reset(&wgl->fbo_color);
+    ngli_texture_reset(&wgl->fbo_depth);
 
     if (wgl->pixel_buffer && wgl->device_context) {
         if (wgl->ReleasePbufferDCARB)
@@ -265,6 +322,7 @@ static uintptr_t wgl_get_handle(struct glcontext *ctx)
 
 const struct glcontext_class ngli_glcontext_wgl_class = {
     .init = wgl_init,
+    .init_framebuffer = wgl_init_framebuffer,
     .uninit = wgl_uninit,
     .make_current = wgl_make_current,
     .swap_buffers = wgl_swap_buffers,
