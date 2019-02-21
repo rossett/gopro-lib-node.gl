@@ -27,7 +27,32 @@ def centered_media(cfg, uv_corner_x=0, uv_corner_y=0, uv_width=1, uv_height=1, p
         media_duration = ngl.UniformFloat(m0.duration)
         ar = ngl.UniformFloat(cfg.aspect_ratio_float)
         render.update_uniforms(media_duration=media_duration, ar=ar)
-    return render
+
+    text = ngl.Text("#Hello\nW0oOrld! :)",
+                    box_corner=(-1, -1, 0),
+                    box_width=(2, 0, 0),
+                    box_height=(0, 2, 0),
+                    valign='center',
+                    fg_color=(1.0, 0.5, 0.0, 1.0),
+                    bg_color=(0.0, 0.0, 0.0, 0.7))
+
+    text2 = ngl.Text("W\nX\nY\nZ",
+                    box_corner=(-1, -1, 0),
+                    box_width=(2, 0, 0),
+                    box_height=(0, 2, 0),
+                    valign='bottom',
+                    halign='right',
+                    fg_color=(1.0, 0.5, 0.0, 1.0),
+                    bg_color=(0.0, 0.0, 0.0, 0.7))
+
+
+    group = ngl.Group(children=(render, text))
+
+    return ngl.GraphicConfig(group, blend=True,
+                             blend_src_factor='src_alpha',
+                             blend_dst_factor='one_minus_src_alpha',
+                             blend_src_factor_a='zero',
+                             blend_dst_factor_a='one')
 
 
 @scene(speed={'type': 'range', 'range': [0.01, 2], 'unit_base': 1000})

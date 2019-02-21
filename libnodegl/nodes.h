@@ -41,6 +41,7 @@
 #endif
 
 #include "animation.h"
+#include "drawutils.h"
 #include "glincludes.h"
 #include "glcontext.h"
 #include "glstate.h"
@@ -400,6 +401,31 @@ struct compute_priv {
     struct pipeline pipeline;
 };
 
+struct text_priv {
+    char *text;
+    float fg_color[4];
+    float bg_color[4];
+    float box_corner[3];
+    float box_width[3];
+    float box_height[3];
+    int padding;
+    int valign, halign;
+
+    struct texture texture;
+    struct canvas canvas;
+
+    GLuint vao_id;
+    GLuint program_id;
+    GLuint vertices_id;
+    GLuint uvcoord_id;
+
+    GLint position_location;
+    GLint uvcoord_location;
+    GLint texture_location;
+    GLint modelview_matrix_location;
+    GLint projection_matrix_location;
+};
+
 int ngli_pipeline_init(struct ngl_node *node);
 void ngli_pipeline_uninit(struct ngl_node *node);
 int ngli_pipeline_update(struct ngl_node *node, double t);
@@ -549,8 +575,7 @@ struct hud_priv {
     uint32_t bg_color_u32;
     int fd_export;
     struct bstr *csv_line;
-    uint8_t *data_buf;
-    int data_w, data_h;
+    struct canvas canvas;
     double refresh_rate_interval;
     double last_refresh_time;
     int need_refresh;

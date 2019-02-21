@@ -440,6 +440,24 @@ Parameter | Ctor. | Live-chg. | Type | Description | Default
 **Source**: [node_scale.c](/libnodegl/node_scale.c)
 
 
+## Text
+
+Parameter | Ctor. | Live-chg. | Type | Description | Default
+--------- | :---: | :-------: | ---- | ----------- | :-----:
+`text` | ✓ |  | [`string`](#parameter-types) | text string to rasterize | 
+`fg_color` |  |  | [`vec4`](#parameter-types) | foreground text color | (`1`,`1`,`1`,`1`)
+`bg_color` |  |  | [`vec4`](#parameter-types) | background text color | (`0`,`0`,`0`,`0.8`)
+`box_corner` |  |  | [`vec3`](#parameter-types) | origin coordinates of `box_width` and `box_height` vectors | (`-1`,`-1`,`0`)
+`box_width` |  |  | [`vec3`](#parameter-types) | box width vector | (`2`,`0`,`0`)
+`box_height` |  |  | [`vec3`](#parameter-types) | box height vector | (`0`,`2`,`0`)
+`padding` |  |  | [`int`](#parameter-types) | pixel padding around the text | `3`
+`valign` |  |  | [`valign`](#valign-choices) | vertical alignment of the text in the box | `center`
+`halign` |  |  | [`halign`](#halign-choices) | horizontal alignment of the text in the box | `center`
+
+
+**Source**: [node_text.c](/libnodegl/node_text.c)
+
+
 ## Texture2D
 
 Parameter | Ctor. | Live-chg. | Type | Description | Default
@@ -832,6 +850,22 @@ Constant | Description
 -------- | -----------
 `depth` | depth
 `stencil` | stencil
+
+## valign choices
+
+Constant | Description
+-------- | -----------
+`center` | vertically centered
+`bottom` | bottom positioned
+`top` | top positioned
+
+## halign choices
+
+Constant | Description
+-------- | -----------
+`center` | horizontally centered
+`right` | right positioned
+`left` | left positioned
 
 ## format choices
 
