@@ -32,18 +32,18 @@
 
 #define DEFAULT_CLEAR_COLOR {-1.0f, -1.0f, -1.0f, -1.0f}
 #define DEFAULT_SCISSOR     {-1.0f, -1.0f, -1.0f, -1.0f}
-#define FEATURE_DEPTH       (1 << 0)
-#define FEATURE_STENCIL     (1 << 1)
-#define FEATURE_CLEAR_COLOR (1 << 2)
-#define FEATURE_CLEAR       (1 << 3)
-#define FEATURE_SCISSOR     (1 << 4)
+#define FLAG_DEPTH          (1 << 0)
+#define FLAG_STENCIL        (1 << 1)
+#define FLAG_CLEAR_COLOR    (1 << 2)
+#define FLAG_CLEAR          (1 << 3)
+#define FLAG_SCISSOR        (1 << 4)
 
 static const struct param_choices feature_choices = {
     .name = "framebuffer_features",
     .consts = {
-        {"depth",   FEATURE_DEPTH,   .desc=NGLI_DOCSTRING("depth")},
-        {"stencil", FEATURE_STENCIL, .desc=NGLI_DOCSTRING("stencil")},
-        {"clear",   FEATURE_CLEAR,   .desc=NGLI_DOCSTRING("clear")},
+        {"depth",   FLAG_DEPTH,   .desc=NGLI_DOCSTRING("depth")},
+        {"stencil", FLAG_STENCIL, .desc=NGLI_DOCSTRING("stencil")},
+        {"clear",   FLAG_CLEAR,   .desc=NGLI_DOCSTRING("clear")},
         {NULL}
     }
 };
@@ -67,7 +67,7 @@ static const struct node_param rtt_params[] = {
                       .desc=NGLI_DOCSTRING("number of samples used for multisampling anti-aliasing")},
     {"clear_color",   PARAM_TYPE_VEC4, OFFSET(clear_color), {.vec=DEFAULT_CLEAR_COLOR},
                       .desc=NGLI_DOCSTRING("color used to clear the `color_texture`")},
-    {"features",      PARAM_TYPE_FLAGS, OFFSET(features), {.i64=FEATURE_CLEAR},
+    {"features",      PARAM_TYPE_FLAGS, OFFSET(features), {.i64=FLAG_CLEAR},
                       .choices=&feature_choices,
                       .desc=NGLI_DOCSTRING("framebuffer feature mask")},
     {"vflip",         PARAM_TYPE_BOOL, OFFSET(vflip), {.i64=1},
@@ -92,11 +92,11 @@ static int rtt_init(struct ngl_node *node)
 
     float default_clear_color[4] = DEFAULT_CLEAR_COLOR;
     if (memcmp(s->clear_color, default_clear_color, sizeof(s->clear_color)) != 0)
-        s->features |= FEATURE_CLEAR_COLOR;
+        s->flags |= FLAG_CLEAR_COLOR;
 
     float default_scissor[4] = DEFAULT_SCISSOR;
     if (memcmp(s->scissor, default_scissor, sizeof(s->scissor)) != 0)
-        s->features |= FEATURE_SCISSOR;
+        s->flags |= FLAG_SCISSOR;
 
     return 0;
 }
@@ -143,13 +143,13 @@ static int rtt_prefetch(struct ngl_node *node)
     if (depth_texture) {
         struct texture *dt = &depth_texture->texture;
         depth_format = depth_texture_params->format;
-        s->features |= FEATURE_DEPTH;
-        s->features |= has_stencil(depth_format) ? FEATURE_STENCIL : 0;
+        s->flags |= FLAG_DEPTH;
+        s->flags |= has_stencil(depth_format) ? FLAG_STENCIL : 0;
         attachments[nb_attachments++] = dt;
     } else {
-        if (s->features & FEATURE_STENCIL)
+        if (s->flags & FLAG_STENCIL)
             depth_format = NGLI_FORMAT_D24_UNORM_S8_UINT;
-        else if (s->features & FEATURE_DEPTH)
+        else if (s->flags & FLAG_DEPTH)
             depth_format = NGLI_FORMAT_D16_UNORM;
 
         if (depth_format != NGLI_FORMAT_UNDEFINED) {
@@ -248,8 +248,8 @@ static void rtt_draw(struct ngl_node *node)
     ngli_glGetIntegerv(gl, GL_VIEWPORT, viewport);
     ngli_glViewport(gl, 0, 0, s->width, s->height);
 
-    if ((s->features & FEATURE_CLEAR)) {
-        if ((s->features & FEATURE_CLEAR_COLOR)) {
+    if ((s->flags & FLAG_CLEAR)) {
+        if ((s->flags & FLAG_CLEAR_COLOR)) {
             float *rgba = s->clear_color;
             ngli_glClearColor(gl, rgba[0], rgba[1], rgba[2], rgba[3]);
         }
@@ -257,15 +257,14 @@ static void rtt_draw(struct ngl_node *node)
         ngli_glClear(gl, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     }
 
-    if ((s->features & FEATURE_SCISSOR)) {
+    if ((s->flags & FLAG_SCISSOR)) {
         ngli_glScissor(gl, s->scissor[0], s->scissor[1], s->scissor[2], s->scissor[3]);
         ngli_glEnable(gl, GL_SCISSOR_TEST);
     }
 
-    LOG(INFO, "%p", (void*)node);
     ngli_node_draw(s->child);
 
-    if ((s->features & FEATURE_CLEAR_COLOR)) {
+    if ((s->flags & FLAG_CLEAR_COLOR)) {
         struct ngl_config *config = &ctx->config;
         float *rgba = config->clear_color;
         ngli_glClearColor(gl, rgba[0], rgba[1], rgba[2], rgba[3]);
@@ -277,7 +276,7 @@ static void rtt_draw(struct ngl_node *node)
     ngli_fbo_invalidate_depth_buffers(fbo);
     ngli_fbo_unbind(fbo);
 
-    if ((s->features & FEATURE_SCISSOR)) {
+    if ((s->flags & FLAG_SCISSOR)) {
         ngli_glDisable(gl, GL_SCISSOR_TEST);
     }
     ngli_glViewport(gl, viewport[0], viewport[1], viewport[2], viewport[3]);

@@ -267,6 +267,7 @@ struct rtt_priv {
     int samples;
     float clear_color[4];
     int features;
+    int flags;
     int vflip;
 
     int width;
